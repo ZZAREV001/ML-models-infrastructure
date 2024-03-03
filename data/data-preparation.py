@@ -3,17 +3,28 @@ import numpy as np
 import os
 import csv
 
-with open('data/raw/futures_asks.csv') as f:
-    asks_prices = [float(row[0]) for row in csv.reader(f)]
 
-asks_prices = np.array(asks_prices)
-asks_prices_tensor = torch.from_numpy(asks_prices)
+def load_and_pad_data(file_path, target_size):
+    with open(file_path) as f:
+        data = [float(row[0]) for row in csv.reader(f)]
+    if len(data) < target_size:
+        # Pad with zeros (or another suitable value)
+        data.extend([0.0] * (target_size - len(data)))
+    elif len(data) > target_size:
+        # Optionally trim data here if necessary
+        data = data[:target_size]
+    return torch.tensor(data, dtype=torch.float32).unsqueeze(1)
 
-with open('data/raw/futures_bids.csv') as f:
-    bids_prices = [float(row[0]) for row in csv.reader(f)]
+# Determine the maximum size
+sizes = []
+for file_name in ['futures_asks.csv', 'futures_bids.csv']:
+    with open(f'data/raw/{file_name}') as f:
+        sizes.append(len(list(csv.reader(f))))
+max_size = max(sizes)
 
-bids_prices = np.array(bids_prices)
-bids_prices_tensor = torch.from_numpy(bids_prices)
+# Process and pad data
+asks_prices_tensor = load_and_pad_data('data/raw/futures_asks.csv', max_size)
+bids_prices_tensor = load_and_pad_data('data/raw/futures_bids.csv', max_size)
 
 # Get the processed data directory path
 processed_dir = 'data/processed'
@@ -23,6 +34,3 @@ if not os.path.exists(processed_dir):
 # Save tensors
 torch.save(bids_prices_tensor, os.path.join(processed_dir, 'bids_prices.pt'))
 torch.save(asks_prices_tensor, os.path.join(processed_dir, 'asks_volumes.pt'))
-
-
-

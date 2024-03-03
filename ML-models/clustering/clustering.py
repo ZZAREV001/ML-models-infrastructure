@@ -2,6 +2,8 @@ import torch
 from torch import nn
 from sklearn.cluster import KMeans
 import os
+import matplotlib.pyplot as plt
+from sklearn.decomposition import PCA
 
 # Load raw data tensors
 processed_data_dir = 'data/processed'
@@ -37,3 +39,19 @@ kmeans.fit(embeddings.numpy())
 labels = kmeans.predict(embeddings.numpy())
 
 print(labels)
+
+# Assuming `data` is your dataset and `labels` are the cluster labels from KMeans
+data_numpy = data.numpy()  # Convert PyTorch tensor to numpy array if necessary
+
+# Apply PCA to reduce to 2 dimensions for visualization
+pca = PCA(n_components=2)
+data_reduced = pca.fit_transform(data_numpy)
+
+# Plotting
+plt.figure(figsize=(10, 6))
+scatter = plt.scatter(data_reduced[:, 0], data_reduced[:, 1], c=labels, cmap='viridis', alpha=0.6, edgecolors='w')
+plt.title('Cluster Visualization with PCA')
+plt.xlabel('Principal Component 1')
+plt.ylabel('Principal Component 2')
+plt.legend(handles=scatter.legend_elements()[0], title="Clusters")
+plt.show()
