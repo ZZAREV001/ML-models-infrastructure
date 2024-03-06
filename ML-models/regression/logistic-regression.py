@@ -79,11 +79,11 @@ model.eval()
 with torch.no_grad():
     correct = 0
     total = 0
-    for inputs, labels in test_loader:  # Assuming you have a DataLoader `test_loader`
+    for inputs, labels in test_loader:
         outputs = model(inputs)
-        predicted = (outputs.data > 0.5)  # Use a threshold of 0.5
+        predicted = (outputs > 0.5).float()  # Convert to float tensor
         total += labels.size(0)
-        correct += (predicted.view(-1).long() == labels).sum()
+        correct += (predicted == labels.view(-1, 1)).sum().item()  # Convert to Python scalar
 
 accuracy = 100 * correct / total
 print(f'Accuracy: {accuracy:.2f}%')
