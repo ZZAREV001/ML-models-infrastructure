@@ -11,23 +11,23 @@ def load_and_pad_data(file_path, target_size):
         # Pad with zeros (or another suitable value)
         data.extend([0.0] * (target_size - len(data)))
     elif len(data) > target_size:
-        # Optionally trim data here if necessary
+        # Optionally trim global_analysis here if necessary
         data = data[:target_size]
     return torch.tensor(data, dtype=torch.float32).unsqueeze(1)
 
 # Determine the maximum size
 sizes = []
 for file_name in ['futures_asks.csv', 'futures_bids.csv']:
-    with open(f'data/raw/{file_name}') as f:
+    with open(f'global_analysis/raw/{file_name}') as f:
         sizes.append(len(list(csv.reader(f))))
 max_size = max(sizes)
 
-# Process and pad data
-asks_prices_tensor = load_and_pad_data('data/raw/futures_asks.csv', max_size)
-bids_prices_tensor = load_and_pad_data('data/raw/futures_bids.csv', max_size)
+# Process and pad global_analysis
+asks_prices_tensor = load_and_pad_data('global_analysis/raw/futures_asks.csv', max_size)
+bids_prices_tensor = load_and_pad_data('global_analysis/raw/futures_bids.csv', max_size)
 
-# Get the processed data directory path
-processed_dir = 'data/processed'
+# Get the processed global_analysis directory path
+processed_dir = 'global_analysis/processed'
 if not os.path.exists(processed_dir):
     os.makedirs(processed_dir)
 

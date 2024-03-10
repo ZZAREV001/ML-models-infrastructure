@@ -5,12 +5,12 @@ import os
 import matplotlib.pyplot as plt
 from sklearn.decomposition import PCA
 
-# Load raw data tensors
-processed_data_dir = 'data/processed'
+# Load raw global_analysis tensors
+processed_data_dir = 'global_analysis/processed'
 bids_prices_tensor = torch.load(os.path.join(processed_data_dir, 'bids_prices.pt'))
 asks_volumes_tensor = torch.load(os.path.join(processed_data_dir, 'asks_volumes.pt'))
 
-# Concatenate tensors into one data matrix
+# Concatenate tensors into one global_analysis matrix
 data = torch.cat((bids_prices_tensor, asks_volumes_tensor), dim=1)
 
 # Autoencoder model
@@ -40,7 +40,7 @@ labels = kmeans.predict(embeddings.numpy())
 
 print(labels)
 
-# Assuming `data` is your dataset and `labels` are the cluster labels from KMeans
+# Assuming `global_analysis` is your dataset and `labels` are the cluster labels from KMeans
 data_numpy = data.numpy()  # Convert PyTorch tensor to numpy array if necessary
 
 # Apply PCA to reduce to 2 dimensions for visualization

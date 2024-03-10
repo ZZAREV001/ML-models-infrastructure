@@ -7,4 +7,12 @@
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
   </component>
+  <component name="PyNamespacePackagesService">
+    <option name="namespacePackageFolders">
+      <list>
+        <option value="$MODULE_DIR$/global_analysis/ML_models" />
+        <option value="$MODULE_DIR$/global_analysis" />
+      </list>
+    </option>
+  </component>
 </module>

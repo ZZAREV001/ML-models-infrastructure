@@ -4,8 +4,8 @@ from torch.utils.data import TensorDataset, DataLoader
 from sklearn.model_selection import train_test_split
 
 # Load your tensors
-features_tensor = torch.load('data/processed/asks_volumes.pt')
-labels_tensor = torch.load('data/processed/bids_prices.pt')
+features_tensor = torch.load('global_analysis/processed/asks_volumes.pt')
+labels_tensor = torch.load('global_analysis/processed/bids_prices.pt')
 
 # Convert labels to binary
 threshold = 0  # Define a threshold for what you consider an increase
