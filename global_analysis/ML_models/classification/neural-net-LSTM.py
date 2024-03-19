@@ -62,7 +62,6 @@ class DataPreprocessor:
         return train_data, test_data, train_targets, test_targets
 
 # Define the LSTM model
-# Define the LSTM model
 class LSTMModel(nn.Module):
     def __init__(self, input_size, hidden_size, num_layers, output_size):
         super(LSTMModel, self).__init__()

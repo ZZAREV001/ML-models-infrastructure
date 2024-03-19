@@ -17,6 +17,7 @@ df_trades.set_index('time', inplace=True)
 
 # Resample open interest data to 5-minute intervals
 df_open_interest_resampled = df_open_interest.resample('5min', on='TimeStamp').mean()
+print(df_open_interest_resampled)
 
 # Convert the index of df_open_interest_resampled to timezone-naive
 df_open_interest_resampled.index = df_open_interest_resampled.index.tz_localize(None)
@@ -32,7 +33,11 @@ df_trades_resampled.columns = ['open', 'high', 'low', 'close', 'volume']
 df_merged = pd.merge(df_trades_resampled, df_open_interest_resampled, left_index=True, right_index=True, how='outer')
 
 # Fill missing values in the merged DataFrame
-df_merged = df_merged.fillna(method='ffill')
+# Forward-fill missing values only for the 'OpenInterest' column
+df_merged['OpenInterest'] = df_merged['OpenInterest'].fillna(method='ffill')
+
+# Use a different method or leave missing values as-is for price columns
+df_merged[['open', 'high', 'low', 'close']] = df_merged[['open', 'high', 'low', 'close']].fillna(method='bfill')
 
 # Save the merged DataFrame to a CSV file
 output_file = 'global_analysis/processed/merged_data.csv'
