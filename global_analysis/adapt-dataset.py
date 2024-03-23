@@ -1,71 +1,43 @@
-import torch
 import pandas as pd
+import torch
 
-df_open_interest = pd.read_csv(
-    '/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/open_interest.csv',
-    parse_dates=['TimeStamp'])
-df_bids = pd.read_csv(
-    '/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/bybit_bids.csv')
-df_asks = pd.read_csv(
-    '/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/bybit_asks.csv')
-df_trades = pd.read_csv(
-    '/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/recentTrades.csv')
 
-# Convert 'time' column to datetime and set it as the index of df_trades
-df_trades['time'] = pd.to_datetime(df_trades['time'])
-df_trades.set_index('time', inplace=True)
+def load_and_preprocess_csv(filepath, datetime_col, resample=None, agg_dict=None):
+    df = pd.read_csv(filepath)
+    df[datetime_col] = pd.to_datetime(df[datetime_col])
+    df.dropna(inplace=True)
+    df.set_index(datetime_col, inplace=True)
+    if resample and agg_dict:
+        df = df.resample(resample).agg(agg_dict)
+    return df
 
-# Resample open interest data to 5-minute intervals
-df_open_interest_resampled = df_open_interest.resample('5min', on='TimeStamp').mean()
-print(df_open_interest_resampled)
 
-# Convert the index of df_open_interest_resampled to timezone-naive
-df_open_interest_resampled.index = df_open_interest_resampled.index.tz_localize(None)
+df_trades = load_and_preprocess_csv(
+    '/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/recentTrades.csv',
+    'time', '5min', {'price': 'mean', 'size': 'sum'})
+df_open_interest = load_and_preprocess_csv('/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/open_interest.csv',
+                                           'TimeStamp')
 
-# Resample trade data to 5-minute intervals
-df_trades_resampled = df_trades.resample('5min').agg({
-    'price': ['first', 'max', 'min', 'last'],
-    'size': 'sum'
-})
-df_trades_resampled.columns = ['open', 'high', 'low', 'close', 'volume']
+# Convert the index of df_open_interest to timezone-naive
+df_open_interest.index = df_open_interest.index.tz_localize(None)
 
-# Merge resampled open interest and trade data using outer join
-df_merged = pd.merge(df_trades_resampled, df_open_interest_resampled, left_index=True, right_index=True, how='outer')
+df_asks = pd.read_csv('/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/bybit_bids.csv')
+df_bids = pd.read_csv('/Users/GoldenEagle/Desktop/Divers/Dossier-cours-IT/Cours-JavaScript/Project-Derivative-spot/bybit_asks.csv')
 
-# Fill missing values in the merged DataFrame
-# Forward-fill missing values only for the 'OpenInterest' column
-df_merged['OpenInterest'] = df_merged['OpenInterest'].fillna(method='ffill')
+df_merged = df_trades.join(df_open_interest, how='outer')
+merged_tensor = torch.tensor(df_merged.values, dtype=torch.float32)
+asks_tensor = torch.tensor(df_asks.values, dtype=torch.float32)
+bids_tensor = torch.tensor(df_bids.values, dtype=torch.float32)
 
-# Use a different method or leave missing values as-is for price columns
-df_merged[['open', 'high', 'low', 'close']] = df_merged[['open', 'high', 'low', 'close']].fillna(method='bfill')
+# Determine the maximum number of rows among the tensors
+max_rows = max(merged_tensor.shape[0], asks_tensor.shape[0], bids_tensor.shape[0])
 
-# Save the merged DataFrame to a CSV file
-output_file = 'global_analysis/processed/merged_data.csv'
-df_merged.to_csv(output_file)
+# Pad the tensors with zeros to match the maximum number of rows
+merged_tensor = torch.nn.functional.pad(merged_tensor, (0, 0, 0, max_rows - merged_tensor.shape[0]))
+asks_tensor = torch.nn.functional.pad(asks_tensor, (0, 0, 0, max_rows - asks_tensor.shape[0]))
+bids_tensor = torch.nn.functional.pad(bids_tensor, (0, 0, 0, max_rows - bids_tensor.shape[0]))
 
-class CryptoDataset(torch.utils.data.Dataset):
-    def __init__(self, data):
-        self.data = data
+final_tensor = torch.cat([merged_tensor, asks_tensor, bids_tensor], dim=1)
 
-    def __len__(self):
-        return len(self.data)
-
-    def __getitem__(self, index):
-        sample = self.data[index]
-        return sample
-
-if not df_merged.empty:
-    # Convert the merged DataFrame to PyTorch tensors
-    data_tensor = torch.tensor(df_merged.values, dtype=torch.float32)
-
-    # Create the PyTorch dataset
-    dataset = CryptoDataset(data_tensor)
-
-    train_size = int(0.8 * len(dataset))
-    test_size = len(dataset) - train_size
-    train_dataset, test_dataset = torch.utils.data.random_split(dataset, [train_size, test_size])
-
-    train_loader = torch.utils.data.DataLoader(train_dataset, batch_size=32, shuffle=True)
-    test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=32, shuffle=False)
-else:
-    print("The merged DataFrame is empty. Unable to create dataset and data loaders.")
+# Save the tensors to a file
+torch.save(final_tensor, 'final_tensor.pt')
